@@ -1,0 +1,55 @@
+# Cart Service
+kind: Service
+apiVersion: v1
+metadata:
+  name: cart
+spec:
+  selector:
+    app: cart
+  type: NodePort
+  ports:
+    - port: 9002
+      nodePort: 30168
+      targetPort: 9002
+---
+# Cart Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart
+  labels:
+    app: cart
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cart
+  template:
+    metadata:
+      labels:
+        app: cart
+    spec:
+      containers:
+        - name: cart
+          image: cart:4.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9002
+          env:   #Env Variables
+          - name: DB_HOST   # Database host address from configMap
+            valueFrom: 
+              configMapKeyRef:
+                name: db-conf  #configMap
+                key: host
+          - name: DB_NAME  #Database name from configMap
+            valueFrom:
+              configMapKeyRef:
+                name: db-conf 
+                key: name
+          - name: DB_USERNAME  #Database username from Secret
+            value: root
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-root-credentials #db-credentials
+                key: password

@@ -1,0 +1,135 @@
+#ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-conf
+data:
+ host: mysql
+ name: OSPM_Provider
+ url: jdbc:mysql://mysql:3306/OSPM_Provider
+---
+#Secret for database
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+data:
+ username: dXNlcjEK #user1
+ password: ZGJwYXNz #dbpass
+---
+#Secret of DB
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-root-credentials
+data:
+ password: ZGlwdGk=
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql  #SVC name 
+  labels:
+    app: mysql
+    tier: database
+spec:
+  ports:
+    - port: 3306
+      targetPort: 3306
+  selector:       
+    app: mysql
+    tier: database
+  #clusterIP: None  
+---   
+# Deployment of mysql server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+    tier: database
+spec:
+  selector:  
+    matchLabels:
+      app: mysql
+      tier: database
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels: # Same Service and Deployment selectors
+        app: mysql
+        tier: database
+    spec:
+      containers:
+      - image: mysql:8.0 # image
+        name: mysql 
+        env:
+        - name: MYSQL_ROOT_PASSWORD #Root Password of mysql From a Secret
+          valueFrom:
+            secretKeyRef:
+              name: db-root-credentials # Name of the Secret
+              key: password   
+        - name: MYSQL_USER 
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: username
+        - name: MYSQL_PASSWORD 
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: password
+        - name: MYSQL_DATABASE #Database Name from a ConfigMap
+          valueFrom:
+            configMapKeyRef:
+              name: db-conf
+              key: name
+        - name: SPRING_DATASOURCE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: db-conf
+              key: url
+        ports:
+        - containerPort: 3306
+          name: mysql
+#        volumeMounts:
+#        - name: mysql-persistent-storage
+#          mountPath: /var/lib/mysql
+#      volumes:
+#      - name: mysql-persistent-storage
+#        persistentVolumeClaim:
+#          claimName: mysql-pv-claim
+#---
+##PV
+#
+#kind: PersistentVolume
+#apiVersion: v1
+#metadata:
+#  name: mysql-persistent-volume
+#  labels:
+#    type: local
+#spec:
+#  storageClassName: manual
+#  capacity:
+#    storage: 1Gi
+#  accessModes:
+#    - ReadWriteOnce
+#  hostPath:
+#    path: "/mnt/data"
+#---
+##PVC
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: mysql-pv-claim
+#spec:
+#  storageClassName: manual
+#  accessModes:
+#    - ReadWriteOnce
+#  resources:
+#    requests:
+#      storage: 1Gi
+#          

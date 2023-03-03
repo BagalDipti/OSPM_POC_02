@@ -1,0 +1,55 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: user
+spec:
+  selector:
+    app: user
+  type: NodePort
+  ports:
+    - port: 9003
+      nodePort: 30165
+      targetPort: 9003
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  labels:
+    app: user
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user
+  template:
+    metadata:
+      labels:
+        app: user
+    spec:
+      containers:
+        - name: user
+          image: user:18.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9003
+          env:   #Env Variables
+          - name: DB_HOST   # Database host address from configMap
+            valueFrom: 
+              configMapKeyRef:
+                name: db-conf  #configMap
+                key: host
+          - name: DB_NAME  #Database name from configMap
+            valueFrom:
+              configMapKeyRef:
+                name: db-conf 
+                key: name
+          - name: DB_USERNAME  #Database username from Secret
+            value: root
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-root-credentials #db-credentials
+                key: password

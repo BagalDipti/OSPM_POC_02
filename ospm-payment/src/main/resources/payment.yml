@@ -1,0 +1,55 @@
+# Order Service
+kind: Service
+apiVersion: v1
+metadata:
+  name: payment
+spec:
+  selector:
+    app: payment
+  type: NodePort
+  ports:
+    - port: 9988
+      nodePort: 30174
+      targetPort: 9988
+---
+# Order Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  labels:
+    app: payment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment
+  template:
+    metadata:
+      labels:
+        app: payment
+    spec:
+      containers:
+        - name: payment
+          image: payment:2.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9988
+          env:   #Env Variables
+          - name: DB_HOST   # Database host address from configMap
+            valueFrom: 
+              configMapKeyRef:
+                name: db-conf  #configMap
+                key: host
+          - name: DB_NAME  #Database name from configMap
+            valueFrom:
+              configMapKeyRef:
+                name: db-conf 
+                key: name
+          - name: DB_USERNAME  #Database username from Secret
+            value: root
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-root-credentials #db-credentials
+                key: password

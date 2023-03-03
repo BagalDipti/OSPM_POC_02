@@ -1,0 +1,47 @@
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: eureka  #SVC name 
+  labels:
+    app: eureka
+    tier: server
+spec:
+  ports:
+    - port: 8761
+      nodePort: 30163
+      targetPort: 8761
+  selector:       
+    app: eureka
+    tier: server
+  type: NodePort       
+    
+  #clusterIP: None  
+---  
+# Deployment of mysql server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eureka
+  labels:
+    app: eureka
+    tier: server
+spec:
+  selector:  
+    matchLabels:
+      app: eureka
+      tier: server
+  replicas: 2     
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels: # Same Service and Deployment selectors
+        app: eureka
+        tier: server
+    spec:
+      containers:
+      - image: eureka:4.0
+        name: eureka
+        imagePullPolicy: IfNotPresent
+        
